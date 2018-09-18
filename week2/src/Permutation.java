@@ -1,10 +1,8 @@
 /**
  * Created by thassan on 9/6/18.
  */
-import edu.princeton.cs.algs4.StdRandom;
+import edu.princeton.cs.algs4.StdOut;
 import edu.princeton.cs.algs4.StdIn;
-
-import java.util.Iterator;
 
 /**
  * Write a client program Permutation.java that takes an integer k as a command-line argument;
@@ -29,16 +27,18 @@ import java.util.Iterator;
 public class Permutation {
     public static void main(String[] args) {
 
-        RandomizedQueue<String> rqueue = new RandomizedQueue<>();
+        RandomizedQueue<String> rQueue = new RandomizedQueue<>();
         int k = Integer.parseInt(args[0]);
 
         while (!StdIn.isEmpty()) {
             String item = StdIn.readString();
-            rqueue.enqueue(item);
+            rQueue.enqueue(item);
         }
-        int randomNum = StdRandom.uniform(k);
 
-        Iterator<String> iterator = rqueue.iterator();
+        for (int i = 0 ; i < k; i++)
+        {
+            StdOut.println (rQueue.dequeue());
+        }
 
     }
 }

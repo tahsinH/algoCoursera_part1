@@ -1,6 +1,10 @@
 
 
 import java.util.Iterator;
+import java.util.NoSuchElementException;
+import java.lang.IllegalArgumentException;
+
+import edu.princeton.cs.algs4.StdRandom;
 
 /**
  * Created by thassan on 9/6/18.
@@ -18,14 +22,14 @@ import java.util.Iterator;
  */
 public class RandomizedQueue<Item> implements Iterable<Item> {
 
-    private Item [] theItems;
+    private Item[] theItems;
     private int n;            // number of elements on queue
 
     /**
      * construct an empty randomized queue
      */
     public RandomizedQueue() {
-        theItems = (Item []) new Object[1];
+        theItems = (Item[]) new Object[1];
     }
 
     /**
@@ -47,8 +51,6 @@ public class RandomizedQueue<Item> implements Iterable<Item> {
     }
 
 
-
-
     // resize the underlying array holding the elements
     private void resize(int capacity) {
         assert capacity >= n;
@@ -68,9 +70,11 @@ public class RandomizedQueue<Item> implements Iterable<Item> {
      * @param item
      */
     public void enqueue(Item item) {
-        if(n == theItems.length)
-        {
-            resize(2* theItems.length);
+        if (item == null) {
+            throw new IllegalArgumentException();
+        }
+        if (n == theItems.length) {
+            resize(2 * theItems.length);
         }
         theItems[n++] = item;
     }
@@ -81,7 +85,20 @@ public class RandomizedQueue<Item> implements Iterable<Item> {
      * @return
      */
     public Item dequeue() {
-        throw new UnsupportedOperationException();
+        if (n == 0) {
+            throw new NoSuchElementException();
+        }
+        Integer shuffledNum = StdRandom.uniform(0, n);
+        Item toBeRemoved = theItems[shuffledNum];
+        theItems[shuffledNum] = theItems[n - 1];
+        theItems[n - 1] = null;
+
+        if (n > 0 && n == theItems.length / 4) {
+            resize(theItems.length / 2);
+        }
+
+        n--;
+        return toBeRemoved;
     }
 
     /**
@@ -90,7 +107,12 @@ public class RandomizedQueue<Item> implements Iterable<Item> {
      * @return
      */
     public Item sample() {
-        throw new UnsupportedOperationException();
+        if (n == 0) {
+            throw new NoSuchElementException();
+        }
+        Integer shuffledNum = StdRandom.uniform(0, n);
+        Item toBeRemoved = theItems[shuffledNum];
+        return toBeRemoved;
     }
 
     /**
@@ -99,13 +121,41 @@ public class RandomizedQueue<Item> implements Iterable<Item> {
      * @return
      */
     public Iterator<Item> iterator() {
-        throw new UnsupportedOperationException();
+        return new RandomArrIterator();
+    }
+
+    private class RandomArrIterator implements Iterator<Item> {
+
+        int[] order;
+        int idx = 0;
+
+        public RandomArrIterator() {
+            order = new int[n];
+            for (int i = 0; i < n; i++) {
+                order[i] = i;
+            }
+            StdRandom.shuffle(order);
+        }
+
+        public boolean hasNext() {
+            return idx < n;
+        }
+
+        public Item next() {
+            if (!hasNext()) throw new NoSuchElementException();
+            return theItems[order[idx++]];
+        }
+
+        public void remove() {
+            throw new UnsupportedOperationException();
+        }
     }
 
     /**
      * unit testing
      */
     public static void main(String[] args) {
+        // unit test.. tested manually...
 
     }
 }
