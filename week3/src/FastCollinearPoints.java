@@ -72,27 +72,36 @@ public class FastCollinearPoints {
 
         /*
         StdOut.println("xxxxxxxxxxxxxxx");
-        for(int j = 0; j < thePoints.length; j ++)
+        for(int j = 0; j < pointsSlopeOrder.length; j ++)
         {
-            StdOut.println(currPoint.slopeTo(thePoints[j]));
+            StdOut.println( j + " "  + currPoint.slopeTo(pointsSlopeOrder[j]));
         }
         StdOut.println("xxxxxxxxxxxxxxx");
         */
-
         // after the slope is ordered , the DOUBLE.NEGATIVE_INFINITY, i.e. the same point
         // would be the first element. As such start the indexing at 1,
-        int i = 1;
-        while (i < pointsSlopeOrder.length - 2) {
+        int i = 1; // currPoint
+        while (i < pointsSlopeOrder.length) {
             double currSlope = currPoint.slopeTo(pointsSlopeOrder[i]);
-            if ((currSlope == currPoint.slopeTo(pointsSlopeOrder[i + 1]))
-                    && (currSlope == currPoint.slopeTo(pointsSlopeOrder[i + 2]))) {
-                if (currPoint.compareTo(pointsSlopeOrder[i]) == -1) {
-                    LineSegment e = new LineSegment(pointsSlopeOrder[0], pointsSlopeOrder[i + 2]);
-                    //StdOut.println("the points " + pointsSlopeOrder[0] + "the other one " + pointsSlopeOrder[i] + "another " + pointsSlopeOrder[i + 1] + "another " + pointsSlopeOrder[i + 2]);
-                    collectionOfLineSegments.add(e);
+            int matchingSlopeCount = 0;
+            for (int j = i + 1; // start at the index after currSlope
+                 j < pointsSlopeOrder.length;
+                 j++)
+            {
+                if (currSlope != currPoint.slopeTo(pointsSlopeOrder[j])){
+                    break;
                 }
+                matchingSlopeCount++;
             }
-            i++;
+
+
+            if (matchingSlopeCount >= 2 && // there is atleast 3 more matching slopes, i.e. we have 4 collinear points
+                    (currPoint.compareTo(pointsSlopeOrder[i]) == -1)
+                    ){
+                LineSegment e = new LineSegment(currPoint, pointsSlopeOrder[i + matchingSlopeCount]);
+                collectionOfLineSegments.add(e);
+            }
+            i = i + matchingSlopeCount + 1;
         }
         return collectionOfLineSegments;
     }
