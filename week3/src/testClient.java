@@ -33,12 +33,12 @@ public class testClient {
 
         StdOut.println("====== Brute");
 
+
         BruteCollinearPoints collinearBrute = new BruteCollinearPoints(points);
 
         for (LineSegment segment : collinearBrute.segments()) {
             StdOut.println(segment);
         }
-
 
 
         StdOut.println("====== Fast");

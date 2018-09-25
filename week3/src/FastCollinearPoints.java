@@ -30,6 +30,7 @@ public class FastCollinearPoints {
             }
         }
 
+        Arrays.sort(points);
         // check adjacent points in the sorted array.
         // if the adjacent points are equal , throw exception
         for (int i = 0; i < points.length - 1; i++) {
@@ -56,7 +57,6 @@ public class FastCollinearPoints {
     public LineSegment[] segments() {
         ArrayList<LineSegment> collectionOfAllLineSegments = new ArrayList<LineSegment>();
 
-        Arrays.sort(thePoints);
 
         for (int i = 0; i < thePoints.length; i++) {
             collectionOfAllLineSegments.addAll(getSegmentWithOnePoint(thePoints[i]));
