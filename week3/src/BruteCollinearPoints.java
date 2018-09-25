@@ -4,8 +4,6 @@
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.IllegalFormatCodePointException;
-import java.util.IllegalFormatException;
 
 public class BruteCollinearPoints {
 
@@ -40,15 +38,31 @@ public class BruteCollinearPoints {
                 throw new IllegalArgumentException("Duplicated entries in given points.");
             }
         }
-        thePoints = new Point [points.length];
+        thePoints = new Point[points.length];
         // create a deep copy
-        for ( int i = 0; i < points.length ; i++) {
+        for (int i = 0; i < points.length; i++) {
             thePoints[i] = points[i];
         }
 
     }
 
 
+    /**
+     * the number of line segments
+     *
+     * @return
+     */
+    public int numberOfSegments() {
+        return this.segments().length;
+    }
+
+
+    /**
+     * Choose 4 from n points, basic combinationatronics
+     *
+     * @param points
+     * @return
+     */
     // @todo write a more elegant solution that the following 4-for loop
     private ArrayList<PointTuples> nPointsChoose4(Point[] points) {
 
@@ -71,15 +85,6 @@ public class BruteCollinearPoints {
         return tuples;
     }
 
-
-    /**
-     * the number of line segments
-     *
-     * @return
-     */
-    public int numberOfSegments() {
-        return this.segments().length;
-    }
 
     /**
      * the line segments
@@ -133,5 +138,3 @@ class PointTuples {
                 (secondPointSlope == firstEndPoint.slopeTo(m_points[3])));
     }
 }
-
-

@@ -31,24 +31,29 @@ public class testClient {
         }
         StdDraw.show();
 
+        StdOut.println("====== Brute");
+
+        BruteCollinearPoints collinearBrute = new BruteCollinearPoints(points);
+
+        for (LineSegment segment : collinearBrute.segments()) {
+            StdOut.println(segment);
+        }
+
+
+
+        StdOut.println("====== Fast");
 
 
         // print and draw the line segments
-        BruteCollinearPoints collinear = new BruteCollinearPoints(points);
-
-        StdOut.println(collinear.numberOfSegments());
-
+        FastCollinearPoints collinear = new FastCollinearPoints(points);
         for (LineSegment segment : collinear.segments()) {
             StdOut.println(segment);
             segment.draw();
         }
         StdDraw.show();
 
-        StdOut.println("======");
-        // for checking immutability call again
-        for (LineSegment segment : collinear.segments()) {
-            StdOut.println(segment);
-        }
+
+
 
         /*
         Point a = new Point(2,3);
