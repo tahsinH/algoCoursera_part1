@@ -3,6 +3,7 @@ import edu.princeton.cs.algs4.Stack;
 import edu.princeton.cs.algs4.StdOut;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 
@@ -21,14 +22,7 @@ public class Board {
         // otherwise, look at following:
         // https://stackoverflow.com/questions/5958186/multidimensional-arrays-lengths-in-java
         n = blocks.length;
-
-        tiles = new int[n][n];
-        // make a deep copy
-        for (int i = 0; i < blocks.length; i++) {
-            for (int j = 0; j < blocks[i].length; j++) {
-                tiles[i][j] = blocks[i][j];
-            }
-        }
+        tiles = makeDeepCopyOfSquareMultiArr(blocks);
     }
 
 
@@ -101,21 +95,23 @@ public class Board {
 
     // is this board the goal board?
     public boolean isGoal() {
-        throw new UnsupportedOperationException();
 
-//        return  true;
+        int[][] goalTiles = new int[n][n];
+
+        for (int row = 0; row < n; row++) {
+            for (int col = 0; col < n; col++) {
+                goalTiles[row][col] = row * n + (col + 1);
+            }
+        }
+        goalTiles[n - 1][n - 1] = 0;
+
+        return this.equals(new Board(goalTiles));
     }
+
 
     // a board that is obtained by exchanging any pair of blocks
     public Board twin() {
-        int[][] aTwin = new int[n][n];
-
-        // make a deep copy
-        for (int i = 0; i < tiles.length; i++) {
-            for (int j = 0; j < tiles[i].length; j++) {
-                aTwin[i][j] = tiles[i][j];
-            }
-        }
+        int[][] aTwin = makeDeepCopyOfSquareMultiArr(tiles);
 
         outerloop:
         for (int p = 0; p < n; p++) {
@@ -129,6 +125,17 @@ public class Board {
         return new Board(aTwin);
     }
 
+    private int[][] makeDeepCopyOfSquareMultiArr(final int[][] src) {
+        int n = src.length; // sqaure multi dimension. No check performed
+        int[][] dst = new int[n][n];
+        for (int i = 0; i < n; i++) {
+            for (int j = 0; j < n; j++) {
+                dst[i][j] = src[i][j];
+            }
+        }
+        return dst;
+    }
+
 
     private int[][] swapWithNonZeroNeighbour(int row, int col, int[][] twinTiles) {
         if ((row - 1 >= 0) && twinTiles[row - 1][col] != 0) {
@@ -140,7 +147,7 @@ public class Board {
         } else if (col - 1 >= 0 && twinTiles[row][col - 1] != 0) {
             swap(row, col - 1, row, col, twinTiles);
         } else {
-            throw new IllegalArgumentException("Cannot find a valid non zero neighbour");
+            throw new IllegalArgumentException("Cannot find a valid non zero neighbour to swap with");
         }
         return twinTiles;
     }
@@ -154,20 +161,69 @@ public class Board {
 
 
     // does this board equal y?
+    @Override
     public boolean equals(Object y) {
-        throw new UnsupportedOperationException();
-
-        //    return  true;
+        if (y == this)
+            return true;
+        if (!(y instanceof Board))
+            return false;
+        Board other = (Board) y;
+        // Note the use of deepEquals here;
+        // More on this here : https://stackoverflow.com/questions/2721033/java-arrays-equals-returns-false-for-two-dimensional-arrays
+        return Arrays.deepEquals(other.tiles, tiles)
+                && (other.n == n);
     }
 
     // all neighboring boards
     public Iterable<Board> neighbors() {
-        throw new UnsupportedOperationException();
-/*
-        Stack<Board> theBoard = new Stack<>();
-        theBoard.push(this);
-        return theBoard;
-  */
+        int[] locationOfZero = getZerothLocation();
+        return getValidNeighbours(locationOfZero[0], locationOfZero[1]);
+    }
+
+    private int[] getZerothLocation() {
+        int row = 0;
+        int col = 0;
+
+        outOfWholeLoop:
+        for (row = 0; row < tiles.length; row++) {
+            for (col = 0; col < tiles.length; col++) {
+                if (tiles[row][col] == 0) {
+                    break outOfWholeLoop;
+                }
+            }
+        }
+        return new int[]{row, col};
+    }
+
+
+    private Stack<Board> getValidNeighbours(int rowOfZeroElem, int colOfZeroElem) {
+        Stack<Board> theNeighbors = new Stack<>();
+
+        if (rowOfZeroElem - 1 >= 0) {
+            theNeighbors.push(createNewBoardWithZeroElemSwap(rowOfZeroElem - 1, colOfZeroElem, rowOfZeroElem, colOfZeroElem));
+        }
+
+        if (colOfZeroElem + 1 < n) {
+            theNeighbors.push(createNewBoardWithZeroElemSwap(rowOfZeroElem, colOfZeroElem + 1, rowOfZeroElem, colOfZeroElem));
+        }
+
+        if (rowOfZeroElem + 1 < n) {
+            theNeighbors.push(createNewBoardWithZeroElemSwap(rowOfZeroElem + 1, colOfZeroElem, rowOfZeroElem, colOfZeroElem));
+        }
+
+        if (colOfZeroElem - 1 >= 0) {
+            theNeighbors.push(createNewBoardWithZeroElemSwap(rowOfZeroElem, colOfZeroElem - 1, rowOfZeroElem, colOfZeroElem));
+        }
+
+        // there should be atleast one neighbour that should be movable in the zeroth position.
+        assert (theNeighbors.isEmpty() == false);
+        return theNeighbors;
+    }
+
+    private Board createNewBoardWithZeroElemSwap(int neigbourRow, int neigbourCol, int rowOfZeroElem, int colOfZeroElem) {
+        int[][] neighbourTiles = makeDeepCopyOfSquareMultiArr(tiles);
+        neighbourTiles = swap(neigbourRow, neigbourCol, rowOfZeroElem, colOfZeroElem, neighbourTiles);
+        return new Board(neighbourTiles);
     }
 
     // string representation of this board (in the output format specified below)
@@ -191,10 +247,14 @@ public class Board {
             // read in the board specified in the filename
             In in = new In(filename);
             int n = in.readInt();
+            int val;
             int[][] tiles = new int[n][n];
+            int[][] aCopyOfTiles = new int[n][n];
             for (int i = 0; i < n; i++) {
                 for (int j = 0; j < n; j++) {
-                    tiles[i][j] = in.readInt();
+                    val = in.readInt();
+                    tiles[i][j] = val;
+                    aCopyOfTiles[i][j] = val;
                 }
             }
 
@@ -210,6 +270,19 @@ public class Board {
             System.out.println(initial.twin());
             System.out.print("\n====The immutable board====\n");
             System.out.println(initial);
+
+            System.out.print("\n====The neighbour(S) ====\n");
+
+            for (Board aNeighbour : initial.neighbors()) {
+                System.out.print("\n====Neighbour: ====\n");
+                System.out.println(aNeighbour);
+            }
+
+            System.out.print("\n====Equality test(S) ====\n");
+
+            System.out.println("\nExpected True");
+            System.out.println("\nActual : " + initial.equals(new Board(aCopyOfTiles)));
+
         }
     }
 
