@@ -12,8 +12,7 @@ public class Board {
     // (where blocks[i][j] = block in row i, column j)
     private final int[][] tiles;
     private final int n; // the n dimension,
-    private int manhattanDist = 0;
-    private int numberOfMovesMadeSoFar = 0;
+    private int manhattanDist = -1; // we cannot have a dist of negative
 
 
     public Board(int[][] blocks) {
@@ -46,12 +45,12 @@ public class Board {
                 }
             }
         }
-        return hfunc + numberOfMovesMadeSoFar;
+        return hfunc;
     }
 
     // sum of Manhattan distances between blocks and goal
     public int manhattan() {
-        if (manhattanDist == 0) {
+        if (manhattanDist == -1) {
             int[][] ij_pairOfGoalBoard = getGoalBoard_ijPair();
             int currTileManhattan = 0;
             int tempManhattan = 0;
@@ -68,7 +67,7 @@ public class Board {
                     }
                 }
             }
-            manhattanDist = tempManhattan + numberOfMovesMadeSoFar;
+            manhattanDist = tempManhattan;
         } //else return the cached value
         return manhattanDist;
     }
