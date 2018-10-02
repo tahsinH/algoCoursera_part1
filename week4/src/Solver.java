@@ -16,49 +16,57 @@ public class Solver {
     // find a solution to the initial board (using the A* algorithm)
     public Solver(Board initial) {
         MinPQ<SearchNode> theGame = new MinPQ<>();
+        MinPQ<SearchNode> twinGame = new MinPQ<>();
 
-        theGame.insert(new SearchNode(initial, 0, initial.manhattan(), null));
 
-        while (!theGame.isEmpty()) {
-            SearchNode curr = theGame.delMin();
+        theGame.insert(new SearchNode(initial, 0, null));
+        twinGame.insert(new SearchNode(initial.twin(), 0, null));
 
-            if (curr.mBoard.isGoal()) {
-                solutionNode = curr;
-                solvable = true;
-                break;
-            }
+        SearchNode curr = theGame.delMin();
+        SearchNode currTwin = twinGame.delMin();
 
-            Board twinBoard = curr.mBoard.twin();
-            if (twinBoard.isGoal()) {
-                solutionNode = null;
-                solvable = false;
-                break;
-            }
+        while (!curr.mBoard.isGoal() && !currTwin.mBoard.isGoal()) {
+            addValidNeighBours(curr, theGame);
+            addValidNeighBours(currTwin, twinGame);
 
-            for (Board aNeighbour : curr.mBoard.neighbors()) {
-                if (!aNeighbour.equals(curr.getPredecessor())) { // critical optimization, discard neighbour equal to predecessor
-                    theGame.insert(new SearchNode(aNeighbour, curr.mMoves + 1, aNeighbour.manhattan(), curr));
-                }
+            curr = theGame.delMin();
+            currTwin = twinGame.delMin();
+        }
+
+        if (currTwin.mBoard.isGoal()) {
+            solutionNode = null;
+            solvable = false;
+        } else {
+            solutionNode = curr;
+            solvable = true;
+        }
+    }
+
+    private void addValidNeighBours(SearchNode curr, MinPQ<SearchNode> pq)
+    {
+        SearchNode prev = curr.getPredecessor();
+        for (Board aNeighbour : curr.mBoard.neighbors()) {
+            if (prev == null || !aNeighbour.equals(prev.getBoard())) { // critical optimization, discard neighbour equal to predecessor
+                pq.insert(new SearchNode(aNeighbour, curr.mMoves + 1, curr));
             }
         }
     }
 
+
     private class SearchNode implements Comparable<SearchNode> {
         private final Board mBoard;
         private int mMoves;
-        private int mPriority;
         private SearchNode mPredecessor;
 
-        public SearchNode(final Board initial, int moves, int priorityFunc, final SearchNode predecessor) {
+        public SearchNode(final Board initial, int moves, final SearchNode predecessor) {
             mBoard = initial;
             mMoves = moves;
-            mPriority = priorityFunc;
             mPredecessor = predecessor;
         }
 
         public int compareTo(SearchNode other) {
-            int thisPriorityWithMovesAndPriorityFunc = mPriority + mMoves;
-            int otherPriorityWithMovesAndPriorityFunc = other.mPriority + other.mMoves;
+            int thisPriorityWithMovesAndPriorityFunc = mBoard.manhattan() + mMoves;
+            int otherPriorityWithMovesAndPriorityFunc = other.mBoard.manhattan() + other.mMoves;
 
             if (thisPriorityWithMovesAndPriorityFunc < otherPriorityWithMovesAndPriorityFunc) {
                 return -1;
@@ -69,12 +77,12 @@ public class Solver {
             }
             return 1;
         }
+
         public Board getBoard() {
             return mBoard;
         }
 
-        public SearchNode getPredecessor()
-        {
+        public SearchNode getPredecessor() {
             return mPredecessor;
         }
     }
@@ -95,8 +103,9 @@ public class Solver {
 
     // sequence of boards in a shortest solution; null if unsolvable
     public Iterable<Board> solution() {
-        if (!isSolvable())
-        {return null;}
+        if (!isSolvable()) {
+            return null;
+        }
 
         Stack<Board> theSolutionChain = new Stack<Board>();
         SearchNode node = solutionNode;
