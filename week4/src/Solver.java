@@ -1,6 +1,6 @@
 import edu.princeton.cs.algs4.In;
 import edu.princeton.cs.algs4.MinPQ;
-import edu.princeton.cs.algs4.Queue;
+import edu.princeton.cs.algs4.Stack;
 
 
 /**
@@ -58,7 +58,7 @@ public class Solver {
 
         public int compareTo(SearchNode other) {
             int thisPriorityWithMovesAndPriorityFunc = mPriority + mMoves;
-            int otherPriorityWithMovesAndPriorityFunc = other.mPriority = other.mMoves;
+            int otherPriorityWithMovesAndPriorityFunc = other.mPriority + other.mMoves;
 
             if (thisPriorityWithMovesAndPriorityFunc < otherPriorityWithMovesAndPriorityFunc) {
                 return -1;
@@ -98,10 +98,10 @@ public class Solver {
         if (!isSolvable())
         {return null;}
 
-        Queue<Board> theSolutionChain = new Queue<Board>();
+        Stack<Board> theSolutionChain = new Stack<Board>();
         SearchNode node = solutionNode;
         while (node != null) {
-            theSolutionChain.enqueue(node.getBoard());
+            theSolutionChain.push(node.getBoard());
             node = node.getPredecessor();
         }
         return theSolutionChain;
