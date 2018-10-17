@@ -215,7 +215,7 @@ public class Board {
         }
 
         // there should be atleast one neighbour that should be movable in the zeroth position.
-        assert (theNeighbors.isEmpty() == false);
+        assert (!theNeighbors.isEmpty());
         return theNeighbors;
     }
 
