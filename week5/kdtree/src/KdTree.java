@@ -2,7 +2,15 @@
  * Created by thassan on 10/16/18.
  */
 
-import edu.princeton.cs.algs4.*;
+import edu.princeton.cs.algs4.RectHV;
+import edu.princeton.cs.algs4.Point2D;
+import edu.princeton.cs.algs4.StdOut;
+import edu.princeton.cs.algs4.In;
+import edu.princeton.cs.algs4.StdDraw;
+
+import java.awt.*;
+import java.util.Stack;
+
 
 
 public class KdTree {
@@ -39,7 +47,6 @@ public class KdTree {
     }
 
 
-
     /*
      * number of points in the set
      */
@@ -48,26 +55,38 @@ public class KdTree {
     }
 
 
-    private Node insert(Node n, Point2D p, int level) {
+    private RectHV getLeftRect(RectHV parentRect, Node node, int level) {
+        boolean orientation = (level & 1) != 0; // x orientation
+        if (orientation) {
+            return new RectHV(parentRect.xmin(), parentRect.ymin(), node.p.x(), parentRect.ymax());
+        }
+        return new RectHV(parentRect.xmin(), parentRect.ymin(), parentRect.xmax(), node.p.y());
+    }
+
+    private RectHV getRightRect(RectHV parentRect, Node node, int level) {
+        boolean orientation = (level & 1) != 0; // x orientation
+        if (orientation) {
+            return new RectHV(node.p.x(), parentRect.ymin(), parentRect.xmax(), parentRect.ymax());
+        }
+        return new RectHV(parentRect.xmin(), node.p.y(), parentRect.xmax(), parentRect.ymax());
+    }
+
+    private Node insert(Node n, Point2D p, RectHV aRectHv, int level) {
 
         if (n == null) {
-            return new Node(p, null, null, null);
+            return new Node(p, aRectHv, null, null);
         }
-
         // a faster way to do modulous to find even or odd level
         // https://stackoverflow.com/questions/7342237/check-whether-number-is-even-or-odd
-        if ((level & 1) != 0) {
-            if (p.x() < n.p.x()) {
-                n.lb = insert(n.lb, p, level + 1);
-            } else {
-                n.rt = insert(n.rt, p, level + 1);
-            }
+        boolean orientation = (level & 1) != 0;
+
+        if ((orientation && (p.x() < n.p.x())) ||
+                (!orientation && (p.y() < n.p.y()))) {
+            RectHV leftRect = getLeftRect(aRectHv, n, level);
+            n.lb = insert(n.lb, p, leftRect, level + 1);
         } else {
-            if (p.y() < n.p.y()) {
-                n.lb = insert(n.lb, p, level + 1);
-            } else {
-                n.rt = insert(n.rt, p, level + 1);
-            }
+            RectHV rightRect = getRightRect(aRectHv, n, level);
+            n.rt = insert(n.rt, p, rightRect, level + 1);
         }
         return n;
     }
@@ -80,7 +99,10 @@ public class KdTree {
             throw new java.lang.IllegalArgumentException();
         }
         ++theSize;
-        root = insert(root, p, 1); // start at level 1;
+        // the root level contains the entire set, which
+        // is in the range of 0 to 1
+        RectHV rootLevelFieldRect = new RectHV(0, 0, 1, 1);
+        root = insert(root, p, rootLevelFieldRect, 1); // start at level 1;
     }
 
 
@@ -96,19 +118,15 @@ public class KdTree {
         }
         Node foundNode = null;
 
-        if ((level & 1) != 0) {
-            if (p.x() < n.p.x()) {
-                foundNode = contains(n.lb, p, level + 1);
-            } else {
-                foundNode = contains(n.rt, p, level + 1);
-            }
+        boolean orientation = (level & 1) != 0;
+
+        if ((orientation && (p.x() < n.p.x())) ||
+                (!orientation && (p.y() < n.p.y()))) {
+            foundNode = contains(n.lb, p, level + 1);
         } else {
-            if (p.y() < n.p.y()) {
-                foundNode = contains(n.lb, p, level + 1);
-            } else {
-                foundNode = contains(n.rt, p, level + 1);
-            }
+            foundNode = contains(n.rt, p, level + 1);
         }
+
         return foundNode;
     }
 
@@ -126,19 +144,69 @@ public class KdTree {
     }
 
 
-    private void draw(Node n) {
+    private void drawPoint(Point2D aPoint){
+        StdDraw.setPenColor(StdDraw.BLACK);
+        StdDraw.setPenRadius(0.01);
+        aPoint.draw();
+    }
+
+    private void drawEmbeddedRect(RectHV aRect, int level){
+        boolean orientation = (level & 1) != 0;
+        if (orientation)
+        {
+            StdDraw.setPenColor(StdDraw.BLUE);
+        } else {
+            StdDraw.setPenColor(StdDraw.RED);
+        }
+        StdDraw.setPenRadius();
+
+        aRect.draw();
+    }
+
+    private void drawSplittingLines(Point2D p, int level, RectHV embeddedRect)
+    {
+        // get the min and max points of splitting lines
+        Point2D min, max;
+        boolean orientation = (level & 1) != 0;
+        if (orientation){
+            StdDraw.setPenColor(StdDraw.RED);
+            min = new Point2D(p.x(), embeddedRect.ymin());
+            max = new Point2D(p.x(), embeddedRect.ymax());
+        } else {
+            StdDraw.setPenColor(StdDraw.BLUE);
+            min = new Point2D(embeddedRect.xmin(), p.y());
+            max = new Point2D(embeddedRect.xmax(), p.y());
+        }
+
+        StdDraw.setPenRadius();
+        min.drawTo(max);
+    }
+    private void draw(Node n, int level) {
         if (n == null)
             return;
-        n.p.draw();
-        draw(n.lb);
-        draw(n.rt);
+
+        drawPoint(n.p);
+        // you can either choose to draw the embedded rectangles
+        // or you can choose to draw the splitting lines.
+        // the course site seems to prefer drawing the splitting lines,
+        // for a different perspective, you can draw the embedded rectangles.
+        // probably need to shade/fill the rectangle boxes for better visualizations.
+        //drawEmbeddedRect(n.rect, level);
+        drawSplittingLines(n.p, level, n.rect);
+
+        draw(n.lb, level + 1);
+        draw(n.rt, level + 1);
     }
 
     /*
      * draw all points to standard draw
      */
     public void draw() {
-        draw(root);
+        //StdDraw.setScale(0, 1);
+        StdDraw.setPenColor(StdDraw.BLACK);
+        RectHV rootLevelFieldRect = new RectHV(0, 0, 1, 1);
+        rootLevelFieldRect.draw();
+        draw(root, 1);
     }
 
     /*
@@ -178,10 +246,12 @@ public class KdTree {
         StdOut.println(kdtree.contains(containsThePoints));
 
         StdOut.println("========Contains the point? for input10.txt (expect false)");
-        Point2D doesNotcontainThePoints = new Point2D(0.416, 0.362);
-        StdOut.println(kdtree.contains(doesNotcontainThePoints));
+        Point2D doesNotContainThePoints = new Point2D(0.416, 0.362);
+        StdOut.println(kdtree.contains(doesNotContainThePoints));
 
         StdOut.println("========size for input10.txt (expect 10)");
         StdOut.println(kdtree.size());
+
+        kdtree.draw();
     }
 }
