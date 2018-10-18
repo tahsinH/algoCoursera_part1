@@ -7,10 +7,7 @@ import edu.princeton.cs.algs4.Point2D;
 import edu.princeton.cs.algs4.StdOut;
 import edu.princeton.cs.algs4.In;
 import edu.princeton.cs.algs4.StdDraw;
-
-import java.awt.*;
 import java.util.Stack;
-
 
 
 public class KdTree {
@@ -73,9 +70,18 @@ public class KdTree {
 
     private Node insert(Node n, Point2D p, RectHV aRectHv, int level) {
 
+
+        if (n !=null && n.p.equals(p))
+        {
+            return n; // duplicate point
+        }
+
         if (n == null) {
+            theSize++;
             return new Node(p, aRectHv, null, null);
         }
+
+
         // a faster way to do modulous to find even or odd level
         // https://stackoverflow.com/questions/7342237/check-whether-number-is-even-or-odd
         boolean orientation = (level & 1) != 0;
@@ -98,7 +104,6 @@ public class KdTree {
         if (p == null) {
             throw new java.lang.IllegalArgumentException();
         }
-        ++theSize;
         // the root level contains the entire set, which
         // is in the range of 0 to 1
         RectHV rootLevelFieldRect = new RectHV(0, 0, 1, 1);
@@ -144,16 +149,15 @@ public class KdTree {
     }
 
 
-    private void drawPoint(Point2D aPoint){
+    private void drawPoint(Point2D aPoint) {
         StdDraw.setPenColor(StdDraw.BLACK);
         StdDraw.setPenRadius(0.01);
         aPoint.draw();
     }
 
-    private void drawEmbeddedRect(RectHV aRect, int level){
+    private void drawEmbeddedRect(RectHV aRect, int level) {
         boolean orientation = (level & 1) != 0;
-        if (orientation)
-        {
+        if (orientation) {
             StdDraw.setPenColor(StdDraw.BLUE);
         } else {
             StdDraw.setPenColor(StdDraw.RED);
@@ -163,12 +167,11 @@ public class KdTree {
         aRect.draw();
     }
 
-    private void drawSplittingLines(Point2D p, int level, RectHV embeddedRect)
-    {
+    private void drawSplittingLines(Point2D p, int level, RectHV embeddedRect) {
         // get the min and max points of splitting lines
         Point2D min, max;
         boolean orientation = (level & 1) != 0;
-        if (orientation){
+        if (orientation) {
             StdDraw.setPenColor(StdDraw.RED);
             min = new Point2D(p.x(), embeddedRect.ymin());
             max = new Point2D(p.x(), embeddedRect.ymax());
@@ -181,6 +184,7 @@ public class KdTree {
         StdDraw.setPenRadius();
         min.drawTo(max);
     }
+
     private void draw(Node n, int level) {
         if (n == null)
             return;
@@ -209,21 +213,112 @@ public class KdTree {
         draw(root, 1);
     }
 
+    private void range(Stack<Point2D> inRange, RectHV rect, Node n) {
+        if (n == null)
+        {
+            return;
+        }
+        if (rect.intersects(n.rect)) {
+            if (rect.contains(n.p)) {
+                inRange.push(n.p);
+            }
+            range(inRange, rect, n.lb);
+            range(inRange, rect, n.rt);
+        }
+    }
+
     /*
      *  all points that are inside the rectangle (or on the boundary)
      */
-    public Iterable<Point2D> range(RectHV rect) {
+    public Iterable<Point2D> range(RectHV rectToSearch) {
+        if (rectToSearch == null) {
+            throw new java.lang.IllegalArgumentException();
+        }
+       //Instead of checking whether the query rectangle intersects the rectangle
+        // corresponding to a node, it suffices to check only whether
+        // the query rectangle intersects the splitting line segment:
+        // if it does, then recursively search both subtrees;
+        // otherwise, recursively search the one subtree where points intersecting the query rectangle could be.
 
         Stack<Point2D> inRange = new Stack<Point2D>();
+        range(inRange, rectToSearch, root);
         return inRange;
     }
+
+
+    private Point2D nearest(Node n, Point2D pointToSearch, int level, Point2D candidatePoint) {
+
+        // to understand how this works in more detail:
+        // https://gopalcdas.com/2017/05/24/construction-of-k-d-tree-and-using-it-for-nearest-neighbour-search/
+
+        if (n == null) {
+            return candidatePoint;
+        }
+
+        //StdOut.println("Point Visited");
+        //StdOut.println(n.p);
+
+        if (pointToSearch.equals(n.p)) {
+            return n.p;
+        }
+
+        if (candidatePoint == null) {
+            candidatePoint = n.p;
+        }
+        double currRectDist = n.rect.distanceSquaredTo(pointToSearch);
+        //StdOut.println("The current rect dist");
+        //StdOut.println(currRectDist);
+
+        double candidatePointDist = candidatePoint.distanceSquaredTo(pointToSearch);
+        // pruning, first search the "possible bounding box"
+        if (currRectDist <= candidatePointDist) {
+
+            if (pointToSearch.distanceSquaredTo(n.p) < (pointToSearch.distanceSquaredTo(candidatePoint))) {
+                candidatePoint = n.p;
+            }
+
+
+            /* organize method so that it begins by searching for query point
+             * It is a crucial performance optimization because the points encountered
+             * while exploring the first subtree may enable pruning of the second subtree.
+             * For typical inputs, choosing the direction that
+             * goes toward the query point makes it more likely
+             * that we will encounter points close to the query point.
+
+             * As such, if we see there is a better chance to find nearest using left,
+             * we go left.. else right first
+
+             * Furthermore, we do a bounding rectangle check to see whether, there is a lesser chance or no chance
+             * of a smaller nearest point
+             */
+
+
+            boolean orientation = (level & 1) != 0;
+            if ((orientation && (pointToSearch.x() < n.p.x())) ||
+                    (!orientation && (pointToSearch.y() < n.p.y()))) {
+                candidatePoint = nearest(n.lb, pointToSearch, level + 1, candidatePoint);
+                candidatePoint = nearest(n.rt, pointToSearch, level + 1, candidatePoint);
+            } else {
+                candidatePoint = nearest(n.rt, pointToSearch, level + 1, candidatePoint);
+                candidatePoint = nearest(n.lb, pointToSearch, level + 1, candidatePoint);
+            }
+        }
+        return candidatePoint;
+    }
+
 
     /*
      * a nearest neighbor in the set to point p; null if the set is empty
      */
+
     public Point2D nearest(Point2D p) {
-        throw new java.lang.UnsupportedOperationException();
+        if (p == null) {
+            throw new java.lang.IllegalArgumentException();
+        }
+
+        return nearest(root, p, 1, null);
     }
+
 
     /*
      * unit testing of the methods (optional)
@@ -241,17 +336,26 @@ public class KdTree {
             kdtree.insert(p);
         }
 
-        StdOut.println("========Contains the point? for input10.txt (expect true)");
-        Point2D containsThePoints = new Point2D(0.083, 0.510);
+        StdOut.println("========Contains the point? for circle10.txt (expect true)");
+        Point2D containsThePoints = new Point2D(0.975528, 0.345492);
         StdOut.println(kdtree.contains(containsThePoints));
 
-        StdOut.println("========Contains the point? for input10.txt (expect false)");
-        Point2D doesNotContainThePoints = new Point2D(0.416, 0.362);
+        StdOut.println("========Contains the point? for circle10.txt (expect false)");
+        Point2D doesNotContainThePoints = new Point2D(0.500000, 0.001000);
         StdOut.println(kdtree.contains(doesNotContainThePoints));
 
-        StdOut.println("========size for input10.txt (expect 10)");
+        StdOut.println("========size for circle10.txt (expect 10)");
         StdOut.println(kdtree.size());
 
+        StdOut.println("========nearest point to  p = (0.81, 0.30) for circle10.txt point2d(0.975528 0.345492)");
+        Point2D pointToSearch = new Point2D(0.81, 0.30);
+        StdOut.println(kdtree.nearest(pointToSearch));
         kdtree.draw();
+
+        StdOut.println("====when the symbol table is empty, nearest point should return null====");
+        KdTree kdtreeEmpty = new KdTree();
+        Point2D findPoint = new Point2D(0.6, 0.12);
+        StdOut.println(kdtreeEmpty.nearest(findPoint));
+
     }
 }
